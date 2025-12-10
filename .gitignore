@@ -1,0 +1,6 @@
+*.env
+*.pdf
+*.log
+*__pycache__
+*chroma_db
+*.DS_Store

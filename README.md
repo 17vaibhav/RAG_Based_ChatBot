@@ -62,7 +62,7 @@ A production-ready Streamlit application that enables Retrieval-Augmented Genera
 
    ```bash
    git clone <your-repo-url>
-   cd Day2
+   cd RAG_Based_ChatBot
    ```
 
 2. **Install Dependencies**:
@@ -90,7 +90,7 @@ The app will launch in your browser at `http://localhost:8501`.
 ## 📂 Project Structure
 
 ```text
-Day2/
+RAG_Based_ChatBot/
 ├── app.py              # Streamlit Frontend Application
 ├── rag_engine.py       # Core RAG Logic (Backend)
 ├── requirements.txt    # Project Dependencies

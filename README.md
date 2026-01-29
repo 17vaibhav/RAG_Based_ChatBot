@@ -36,6 +36,8 @@ A production-ready Streamlit application that enables Retrieval-Augmented Genera
   - Embeddings: `text-embedding-004`
   - LLM: `gemini-2.5-flash`
 - **Interactive Chat**: Ask questions and get context-aware answers in real-time.
+- **User Authentication**: Simple ID-based login for personalized experiences.
+- **Session Management**: Create multiple chat sessions, resume previous ones, and view chat history.
 
 ---
 
@@ -46,6 +48,7 @@ A production-ready Streamlit application that enables Retrieval-Augmented Genera
 - **Vector Store**: [ChromaDB](https://www.trychroma.com/)
 - **LLM Integration**: [LangChain](https://www.langchain.com/)
 - **AI Models**: Google Gemini via `langchain-google-genai`
+- **Session Storage**: [SQLite](https://www.sqlite.org/index.html)
 
 ---
 
@@ -62,7 +65,7 @@ A production-ready Streamlit application that enables Retrieval-Augmented Genera
 
    ```bash
    git clone <your-repo-url>
-   cd Day2
+   cd RAG_Based_ChatBot
    ```
 
 2. **Install Dependencies**:
@@ -85,17 +88,32 @@ streamlit run app.py
 
 The app will launch in your browser at `http://localhost:8501`.
 
+### 🕹️ Usage Guide
+
+1. **Login**: Enter a unique User ID and your Display Name.
+2. **Session Dashboard**:
+   - **Start New Session**: Enter a name for your chat (or let it auto-generate) and click "Create & Start".
+   - **Resume Session**: Pick from your list of previous conversations to pick up where you left off.
+3. **Chat Interface**:
+   - Upload a PDF (or use the one already in the DB if checked).
+   - Ask questions!
+   - Use the sidebar to **Switch Session** or **Logout**.
+
 ---
 
 ## 📂 Project Structure
 
 ```text
-Day2/
-├── app.py              # Streamlit Frontend Application
-├── rag_engine.py       # Core RAG Logic (Backend)
-├── requirements.txt    # Project Dependencies
-├── create_sample_pdf.py # Utility to creating testing PDF
-└── chroma_db/          # Local Vector Database (Created on runtime)
+RAG_Based_ChatBot/
+├── app.py               # Streamlit Frontend Application
+├── rag_engine.py        # Core RAG Logic (Backend)
+├── session_manager.py   # Session & User Management Logic
+├── requirements.txt     # Project Dependencies
+├── create_sample_pdf.py # Utility to create testing PDF
+├── sample_rag_IPL.pdf   # Sample PDF 1
+├── sample_rag_chess.pdf # Sample PDF 2
+├── sessions.db          # SQLite User/Session Database (Runtime)
+└── chroma_db/           # Local Vector Database (Runtime)
 ```
 
 ---

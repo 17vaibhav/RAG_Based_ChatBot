@@ -14,7 +14,7 @@ A production-ready Streamlit application that enables Retrieval-Augmented Genera
                                       |                           |
                                       |                           v
                             +-------------------+       +-------------------+
-                            |   Gemini 2.5 LLM  | <---- | Google Embeddings |
+                            |   Gemini 1.5 LLM  | <---- | Google Embeddings |
                             |  (Answer Gen)     |       | (text-embedding-004)|
                             +-------------------+       +-------------------+
                                       ^                           |
@@ -62,7 +62,7 @@ A production-ready Streamlit application that enables Retrieval-Augmented Genera
 
    ```bash
    git clone <your-repo-url>
-   cd RAG_Based_ChatBot
+   cd Day2
    ```
 
 2. **Install Dependencies**:
@@ -90,7 +90,7 @@ The app will launch in your browser at `http://localhost:8501`.
 ## 📂 Project Structure
 
 ```text
-RAG_Based_ChatBot/
+Day2/
 ├── app.py              # Streamlit Frontend Application
 ├── rag_engine.py       # Core RAG Logic (Backend)
 ├── requirements.txt    # Project Dependencies

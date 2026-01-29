@@ -1,5 +1,6 @@
 import os
 import tempfile
+import hashlib
 from loguru import logger
 from docling.document_converter import DocumentConverter
 from langchain_chroma import Chroma
@@ -27,38 +28,76 @@ class RAGEngine:
         self.vector_store = None
         self.doc_converter = DocumentConverter()
 
-    def process_pdf(self, file_path: str) -> None:
+
+
+    def calculate_hash(self, file_path: str) -> str:
+        """Calculate SHA256 hash of a file"""
+        sha256_hash = hashlib.sha256()
+        with open(file_path, "rb") as f:
+            for byte_block in iter(lambda: f.read(4096), b""):
+                sha256_hash.update(byte_block)
+        return sha256_hash.hexdigest()
+
+    def _load_vector_store(self):
+        """Lazy load or reload the vector store"""
+        if not self.vector_store:
+            # Check if directory exists first to avoid creating empty db on just check
+            if os.path.exists(self.vector_store_path):
+                 self.vector_store = Chroma(
+                    persist_directory=self.vector_store_path,
+                    embedding_function=self.embeddings
+                )
+            # If not exist, it will be created in process_pdf
+
+    def process_pdf(self, file_path: str) -> bool:
         """
-        Processes a PDF file using Docling, chunks the text, and serves it to ChromaDB.
-        Assumes PDF contains text (no OCR needed for images).
+        Processes a PDF file. returns True if new file processed, False if already existed.
         """
-        # 1. Convert PDF to text using Docling
-        # Docling is powerful, but for simple text RAG we primarily need the markdown/text output
-        logger.info(f"Processing PDF: {file_path}")
+        # 1. Calculate Hash
+        file_hash = self.calculate_hash(file_path)
+        
+        # 2. Check if already exists in DB
+        self._load_vector_store()
+        
+        if self.vector_store:
+             # Look for any document with this hash
+             existing_docs = self.vector_store.get(where={"source_hash": file_hash}, limit=1)
+             if len(existing_docs['ids']) > 0:
+                 logger.info(f"PDF with hash {file_hash} already exists in vector store. Skipping processing.")
+                 return False
+
+        # 3. Only if not exists: Convert, Chunk, Embed
+        logger.info(f"Processing new PDF: {file_path}")
         result = self.doc_converter.convert(file_path)
         markdown_text = result.document.export_to_markdown()
         
-        # 2. Chunk text
-        # Using RecursiveCharacterTextSplitter for robust chunking
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=1000,
             chunk_overlap=200,
             separators=["\n\n", "\n", " ", ""]
         )
         
-        # Create langchain Document objects
-        # We could also use docling's native chunking if desired, but this is standard LangChain flow
         chunks = text_splitter.create_documents([markdown_text])
-        logger.info(f"Created {len(chunks)} chunks")
+        
+        # Add metadata including hash
+        for chunk in chunks:
+            chunk.metadata["source_hash"] = file_hash
+            # We use filename instead of full temp path for cleaner source
+            chunk.metadata["source"] = os.path.basename(file_path)
+            
+        logger.info(f"Created {len(chunks)} chunks for new file")
 
-        # 3. Create Vector Store
-        # Persistent ChromaDB
-        self.vector_store = Chroma.from_documents(
-            documents=chunks,
-            embedding=self.embeddings,
-            persist_directory=self.vector_store_path
-        )
-        logger.info("Vector store created successfully")
+        # 4. Create/Update Vector Store
+        if self.vector_store:
+            self.vector_store.add_documents(chunks)
+        else:
+            self.vector_store = Chroma.from_documents(
+                documents=chunks,
+                embedding=self.embeddings,
+                persist_directory=self.vector_store_path
+            )
+        logger.info("Vector store updated successfully")
+        return True
 
     def get_answer(self, question: str) -> str:
         """
@@ -85,13 +124,27 @@ class RAGEngine:
         retriever = self.vector_store.as_retriever(search_kwargs={"k": 5})
         
         system_prompt = (
-            "You are an assistant for question-answering tasks. "
-            "Use the following pieces of retrieved context to answer "
-            "the question. If you don't know the answer, say that you "
-            "don't know. Use three sentences maximum and keep the "
-            "answer concise."
-            "\n\n"
-            "{context}"
+            """
+            <role>
+            You are an assistant designed specifically for accurate question answering.
+            </role>
+
+            <context_handling>
+            Use the retrieved context provided in the variable {context} to answer the question.  
+            If the context does not contain enough information, respond with I don't know.  
+            Do not guess or invent details.
+            </context_handling>
+
+            <output_rules>
+            Provide the answer in a maximum of three sentences.  
+            Keep the response concise, direct, and clear.  
+            Avoid unnecessary elaboration.
+            </output_rules>
+
+            <instruction>
+            Always rely strictly on the given context when forming answers.
+            </instruction>
+            """
         )
 
         prompt = ChatPromptTemplate.from_messages(
